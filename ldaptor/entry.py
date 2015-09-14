@@ -1,10 +1,11 @@
 import base64
 import random
+
 from ldaptor import interfaces, attributeset, delta
 from ldaptor.protocols.ldap import distinguishedname, ldif, ldaperrors
 from twisted.internet import defer
 from twisted.python.util import InsensitiveDict
-from zope.interface import implements
+from zope.interface import implementer
 
 try:
     from hashlib import sha1
@@ -21,13 +22,13 @@ def sshaDigest(passphrase, salt=None):
     s = sha1()
     s.update(passphrase)
     s.update(salt)
-    encoded = base64.encodestring(s.digest()+salt).rstrip()
+    encoded = base64.encodestring(s.digest() + salt).rstrip()
     crypt = '{SSHA}' + encoded
     return crypt
 
 
+@implementer(interfaces.ILDAPEntry)
 class BaseLDAPEntry(object):
-    implements(interfaces.ILDAPEntry)
     dn = None
 
     def __init__(self, dn, attributes={}):
@@ -44,12 +45,12 @@ class BaseLDAPEntry(object):
         self._attributes = InsensitiveDict()
         self.dn = distinguishedname.DistinguishedName(dn)
 
-        for k, vs in attributes.items():
+        for k, vs in list(attributes.items()):
             if k not in self._attributes:
                 self._attributes[k] = []
             self._attributes[k].extend(vs)
 
-        for k, vs in self._attributes.items():
+        for k, vs in list(self._attributes.items()):
             self._attributes[k] = self.buildAttributeSet(k, vs)
 
     def buildAttributeSet(self, key, values):
@@ -65,7 +66,7 @@ class BaseLDAPEntry(object):
         return key in self._attributes
 
     def __contains__(self, key):
-        return self.has_key(key)
+        return key in self
 
     def keys(self):
         a = []
@@ -117,9 +118,9 @@ class BaseLDAPEntry(object):
         if self.dn != other.dn:
             return 0
 
-        my = self.keys()
+        my = list(self.keys())
         my.sort()
-        its = other.keys()
+        its = list(other.keys())
         its.sort()
         if my != its:
             return 0
@@ -134,16 +135,16 @@ class BaseLDAPEntry(object):
         return not self == other
 
     def __len__(self):
-        return len(self.keys())
+        return len(list(self.keys()))
 
-    def __nonzero__(self):
+    def __bool__(self):
         return True
 
     def __repr__(self):
         x = {}
-        for key in self.keys():
+        for key in list(self.keys()):
             x[key] = self[key]
-        keys = self.keys()
+        keys = list(self.keys())
         keys.sort()
         a = []
         for key in keys:
@@ -225,8 +226,8 @@ class BaseLDAPEntry(object):
         return hash(self.dn)
 
 
+@implementer(interfaces.IEditableLDAPEntry)
 class EditableLDAPEntry(BaseLDAPEntry):
-    implements(interfaces.IEditableLDAPEntry)
 
     def __setitem__(self, key, value):
         new = self.buildAttributeSet(key, value)

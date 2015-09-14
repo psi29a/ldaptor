@@ -1,9 +1,10 @@
 import os.path
-import ConfigParser
-from zope.interface import implements
+import configparser
+from zope.interface import implementer
 from ldaptor import interfaces
 from ldaptor.insensitive import InsensitiveString
 from ldaptor.protocols.ldap import distinguishedname
+
 
 class MissingBaseDNError(Exception):
     """Configuration must specify a base DN"""
@@ -11,8 +12,9 @@ class MissingBaseDNError(Exception):
     def __str__(self):
         return self.__doc__
 
+
+@implementer(interfaces.ILDAPConfig)
 class LDAPConfig(object):
-    implements(interfaces.ILDAPConfig)
 
     baseDN = None
     identityBaseDN = None
@@ -28,9 +30,9 @@ class LDAPConfig(object):
             self.baseDN = baseDN
         self.serviceLocationOverrides = {}
         if serviceLocationOverrides is not None:
-            for k,v in serviceLocationOverrides.items():
+            for k, v in list(serviceLocationOverrides.items()):
                 dn = distinguishedname.DistinguishedName(k)
-                self.serviceLocationOverrides[dn]=v
+                self.serviceLocationOverrides[dn] = v
         if identityBaseDN is not None:
             identityBaseDN = distinguishedname.DistinguishedName(identityBaseDN)
             self.identityBaseDN = identityBaseDN
@@ -44,8 +46,8 @@ class LDAPConfig(object):
         cfg = loadConfig()
         try:
             return cfg.get('ldap', 'base')
-        except (ConfigParser.NoOptionError,
-                ConfigParser.NoSectionError):
+        except (configparser.NoOptionError,
+                configparser.NoSectionError):
             raise MissingBaseDNError
 
     def getServiceLocationOverrides(self):
@@ -73,7 +75,7 @@ class LDAPConfig(object):
                         port = None
 
                 dn = distinguishedname.DistinguishedName(stringValue=base)
-                serviceLocationOverride[dn]=(host, port)
+                serviceLocationOverride[dn] = (host, port)
         return serviceLocationOverride
 
     def copy(self, **kw):
@@ -95,38 +97,39 @@ class LDAPConfig(object):
         cfg = loadConfig()
         try:
             return cfg.get('authentication', 'identity-base')
-        except (ConfigParser.NoOptionError,
-                ConfigParser.NoSectionError):
+        except (configparser.NoOptionError,
+                configparser.NoSectionError):
             return self.getBaseDN()
 
     def getIdentitySearch(self, name):
         data = {
             'name': name,
-            }
+        }
 
         if self.identitySearch is not None:
             f = self.identitySearch % data
         else:
             cfg = loadConfig()
             try:
-                f=cfg.get('authentication', 'identity-search', vars=data)
-            except (ConfigParser.NoOptionError,
-                    ConfigParser.NoSectionError):
-                f='(|(cn=%(name)s)(uid=%(name)s))' % data
+                f = cfg.get('authentication', 'identity-search', vars=data)
+            except (configparser.NoOptionError,
+                    configparser.NoSectionError):
+                f = '(|(cn=%(name)s)(uid=%(name)s))' % data
         return f
 
 
 DEFAULTS = {
-    'samba': { 'use-lmhash': 'no',
-               },
-    }
+    'samba': {'use-lmhash': 'no',
+              },
+}
 
 CONFIG_FILES = [
     '/etc/ldaptor/global.cfg',
     os.path.expanduser('~/.ldaptor/global.cfg'),
-    ]
+]
 
 __config = None
+
 
 def loadConfig(configFiles=None,
                reload=False):
@@ -135,12 +138,12 @@ def loadConfig(configFiles=None,
     """
     global __config
     if __config is None or reload:
-        x = ConfigParser.SafeConfigParser()
+        x = configparser.SafeConfigParser()
         x.optionxform = InsensitiveString
 
-        for section, options in DEFAULTS.items():
+        for section, options in list(DEFAULTS.items()):
             x.add_section(section)
-            for option, value in options.items():
+            for option, value in list(options.items()):
                 x.set(section, option, value)
 
         if configFiles is None:
@@ -148,6 +151,7 @@ def loadConfig(configFiles=None,
         x.read(configFiles)
         __config = x
     return __config
+
 
 def useLMhash():
     """

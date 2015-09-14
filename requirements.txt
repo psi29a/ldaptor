@@ -2,7 +2,11 @@
 
 pyOpenSSL
 PyCrypto
-service_identity
+characteristic
+cryptography
+pyasn1_modules
 pyparsing
+service_identity
+six
 twisted
 zope.interface

@@ -17,6 +17,7 @@
 reverse = None
 LDAPOther = None
 
+
 def get(resultCode, errorMessage):
     """Get an instance of the correct exception for this resultCode."""
 
@@ -26,29 +27,35 @@ def get(resultCode, errorMessage):
     else:
         return LDAPUnknownError(resultCode, errorMessage)
 
+
 class LDAPResult:
-    resultCode=None
-    name=None
+    resultCode = None
+    name = None
+
 
 class Success(LDAPResult):
-    resultCode=0
-    name='success'
+    resultCode = 0
+    name = 'success'
 
     def __init__(self, msg):
         pass
 
-class LDAPException(Exception, LDAPResult):
 
-    def _get_message(self): return self.__message
-    def _set_message(self, value): self.__message = value
+class LDAPException(Exception, LDAPResult):
+    def _get_message(self):
+        return self.__message
+
+    def _set_message(self, value):
+        self.__message = value
+
     message = property(_get_message, _set_message)
 
     def __init__(self, message=None):
         Exception.__init__(self)
-        self.message=message
+        self.message = message
 
     def __str__(self):
-        message=self.message
+        message = self.message
         if message:
             return '%s: %s' % (self.name, message)
         elif self.name:
@@ -56,38 +63,43 @@ class LDAPException(Exception, LDAPResult):
         else:
             return 'Unknown LDAP error %r' % self
 
+
 class LDAPUnknownError(LDAPException):
-    resultCode=None
+    resultCode = None
 
     def __init__(self, resultCode, message=None):
         assert resultCode not in reverse, \
-               "resultCode %r must be unknown" % resultCode
-        self.code=resultCode
+            "resultCode %r must be unknown" % resultCode
+        self.code = resultCode
         LDAPException.__init__(self, message)
 
     def __str__(self):
-        codeName='unknownError(%d)'%self.code
+        codeName = 'unknownError(%d)' % self.code
         if self.message:
             return '%s: %s' % (codeName, self.message)
         else:
             return codeName
 
-import new
+
+##import type
+
+
 def init(**errors):
     global reverse
     reverse = {}
-    for name, value in errors.items():
+    for name, value in list(errors.items()):
         if value == errors['success']:
             klass = Success
         else:
-            classname = 'LDAP'+name[0].upper()+name[1:]
-            klass = new.classobj(classname,
+            classname = 'LDAP' + name[0].upper() + name[1:]
+            klass = type(classname,
                                  (LDAPException,),
-                                 { 'resultCode': value,
-                                   'name': name,
-                                   })
+                                 {'resultCode': value,
+                                  'name': name,
+                                  })
             globals()[classname] = klass
         reverse[value] = klass
+
 
 init(
     success=0,
@@ -100,11 +112,11 @@ init(
     authMethodNotSupported=7,
     strongAuthRequired=8,
     # 9 reserved
-    referral=10 ,
-    adminLimitExceeded=11 ,
-    unavailableCriticalExtension=12 ,
-    confidentialityRequired=13 ,
-    saslBindInProgress=14 ,
+    referral=10,
+    adminLimitExceeded=11,
+    unavailableCriticalExtension=12,
+    confidentialityRequired=13,
+    saslBindInProgress=14,
     noSuchAttribute=16,
     undefinedAttributeType=17,
     inappropriateMatching=18,
@@ -137,6 +149,6 @@ init(
     # 72-79 unused
     other=80,
     # 81-90 reserved for APIs
-    )
+)
 
-other=LDAPOther.resultCode
+other = LDAPOther.resultCode
