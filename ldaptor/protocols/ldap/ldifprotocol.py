@@ -1,9 +1,9 @@
 import base64
 
+from ldaptor import entry
 from twisted.protocols import basic
 from twisted.internet import protocol
 
-from ldaptor import entry
 
 class LDIFParseError(Exception):
     """Error parsing LDIF."""
@@ -11,39 +11,47 @@ class LDIFParseError(Exception):
     def __str__(self):
         s = self.__doc__
         if self[:]:
-            s = ': '.join([s]+map(str, self[:]))
-        return s+'.'
+            s = ': '.join([s] + list(map(str, self[:])))
+        return s + '.'
+
 
 class LDIFLineWithoutSemicolonError(LDIFParseError):
     """LDIF line without semicolon seen"""
     pass
 
+
 class LDIFEntryStartsWithNonDNError(LDIFParseError):
     """LDIF entry starts with a non-DN line"""
     pass
+
 
 class LDIFEntryStartsWithSpaceError(LDIFParseError):
     """Invalid LDIF value format"""
     pass
 
+
 class LDIFVersionNotANumberError(LDIFParseError):
     """Non-numeric LDIF version number"""
     pass
+
 
 class LDIFUnsupportedVersionError(LDIFParseError):
     """LDIF version not supported"""
     pass
 
+
 class LDIFTruncatedError(LDIFParseError):
     """LDIF appears to be truncated"""
     pass
+
 
 HEADER = 'HEADER'
 WAIT_FOR_DN = 'WAIT_FOR_DN'
 IN_ENTRY = 'IN_ENTRY'
 
-class LDIF(object, basic.LineReceiver):
-    delimiter='\n'
+
+class LDIF(basic.LineReceiver):
+    delimiter = '\n'
     mode = HEADER
 
     dn = None
@@ -85,7 +93,7 @@ class LDIF(object, basic.LineReceiver):
         except ValueError:
             # unpack list of wrong size
             # -> invalid input data
-            raise LDIFLineWithoutSemicolonError, line
+            raise LDIFLineWithoutSemicolonError(line)
         val = self.parseValue(val)
         return key, val
 
@@ -99,10 +107,10 @@ class LDIF(object, basic.LineReceiver):
             try:
                 version = int(val)
             except ValueError:
-                raise LDIFVersionNotANumberError, val
+                raise LDIFVersionNotANumberError(val)
             self.version = version
             if version > 1:
-                raise LDIFUnsupportedVersionError, version
+                raise LDIFUnsupportedVersionError(version)
 
     def state_WAIT_FOR_DN(self, line):
         assert self.dn is None, 'self.dn must not be set when waiting for DN'
@@ -114,7 +122,7 @@ class LDIF(object, basic.LineReceiver):
         key, val = self._parseLine(line)
 
         if key.upper() != 'DN':
-            raise LDIFEntryStartsWithNonDNError, line
+            raise LDIFEntryStartsWithNonDNError(line)
 
         self.dn = val
         self.data = {}
@@ -136,7 +144,7 @@ class LDIF(object, basic.LineReceiver):
 
         key, val = self._parseLine(line)
 
-        if not key in self.data:
+        if key not in self.data:
             self.data[key] = []
 
         self.data[key].append(val)
@@ -146,4 +154,4 @@ class LDIF(object, basic.LineReceiver):
 
     def connectionLost(self, reason=protocol.connectionDone):
         if self.mode != WAIT_FOR_DN:
-            raise LDIFTruncatedError, reason
+            raise LDIFTruncatedError(reason)

@@ -316,7 +316,7 @@ class BERSequence(BERStructured, collections.UserList):
         self[:] = value
 
     def __str__(self):
-        r = string.join(list(map(str, self.data)), '')
+        r = ''.join(list(map(str, self.data)))
         return chr(self.identification()) + int2berlen(len(r)) + r
 
     def __repr__(self):

@@ -1,7 +1,9 @@
+import datetime
+
 from ldaptor.protocols.ldap import proxy
 from ldaptor.protocols.ldap import ldapsyntax, ldaperrors
 from ldaptor.protocols import pureldap
-import datetime
+
 
 class ServiceBindingProxy(proxy.Proxy):
     """
@@ -82,44 +84,50 @@ class ServiceBindingProxy(proxy.Proxy):
             return None
         timestamp = self.timestamp()
         d = baseEntry.search(filterObject=pureldap.LDAPFilter_and([
-            pureldap.LDAPFilter_equalityMatch(attributeDesc=pureldap.LDAPAttributeDescription('objectClass'),
-                                              assertionValue=pureldap.LDAPAssertionValue('serviceSecurityObject')),
-            pureldap.LDAPFilter_equalityMatch(attributeDesc=pureldap.LDAPAttributeDescription('owner'),
-                                              assertionValue=pureldap.LDAPAssertionValue(request.dn)),
+            pureldap.LDAPFilter_equalityMatch(
+                attributeDesc=pureldap.LDAPAttributeDescription('objectClass'),
+                assertionValue=pureldap.LDAPAssertionValue('serviceSecurityObject')),
+            pureldap.LDAPFilter_equalityMatch(
+                attributeDesc=pureldap.LDAPAttributeDescription('owner'),
+                assertionValue=pureldap.LDAPAssertionValue(request.dn)),
             pureldap.LDAPFilter_equalityMatch(attributeDesc=pureldap.LDAPAttributeDescription('cn'),
-                                              assertionValue=pureldap.LDAPAssertionValue(serviceName)),
+                                              assertionValue=pureldap.LDAPAssertionValue(
+                                                  serviceName)),
 
             pureldap.LDAPFilter_or([
-            # no time
-            pureldap.LDAPFilter_not(pureldap.LDAPFilter_present('validFrom')),
-            # or already valid
-            pureldap.LDAPFilter_lessOrEqual(attributeDesc=pureldap.LDAPAttributeDescription('validFrom'),
-                                            assertionValue=pureldap.LDAPAssertionValue(timestamp)),
+                # no time
+                pureldap.LDAPFilter_not(pureldap.LDAPFilter_present('validFrom')),
+                # or already valid
+                pureldap.LDAPFilter_lessOrEqual(
+                    attributeDesc=pureldap.LDAPAttributeDescription('validFrom'),
+                    assertionValue=pureldap.LDAPAssertionValue(timestamp)),
             ]),
 
             pureldap.LDAPFilter_or([
-            # no time
-            pureldap.LDAPFilter_not(pureldap.LDAPFilter_present('validUntil')),
-            # or still valid
-            pureldap.LDAPFilter_greaterOrEqual(attributeDesc=pureldap.LDAPAttributeDescription('validUntil'),
-                                               assertionValue=pureldap.LDAPAssertionValue(timestamp)),
+                # no time
+                pureldap.LDAPFilter_not(pureldap.LDAPFilter_present('validUntil')),
+                # or still valid
+                pureldap.LDAPFilter_greaterOrEqual(
+                    attributeDesc=pureldap.LDAPAttributeDescription('validUntil'),
+                    assertionValue=pureldap.LDAPAssertionValue(timestamp)),
             ]),
 
-            ]),
-                             attributes=('1.1',))
+        ]),
+            attributes=('1.1',))
 
         def _gotEntries(entries):
             if not entries:
                 return None
-            assert len(entries)==1 #TODO
+            assert len(entries) == 1  # TODO
             e = entries[0]
             d = e.bind(request.auth)
             return d
+
         d.addCallback(_gotEntries)
         d.addCallbacks(
             callback=self._loopIfNone,
             callbackArgs=(services, baseEntry,
-                         request, controls, reply),
+                          request, controls, reply),
             errback=self._loopIfBindError,
             errbackArgs=(services, baseEntry,
                          request, controls, reply))
@@ -141,8 +149,7 @@ class ServiceBindingProxy(proxy.Proxy):
 
     def handle_LDAPBindRequest(self, request, controls, reply):
         if request.version != 3:
-            raise ldaperrors.LDAPProtocolError, \
-                  'Version %u not supported' % request.version
+            raise ldaperrors.LDAPProtocolError('Version %u not supported' % request.version)
 
         self.checkControls(controls)
 
@@ -162,20 +169,21 @@ if __name__ == '__main__':
     from twisted.internet import reactor, protocol
     from twisted.python import log
     import sys
+
     log.startLogging(sys.stderr)
     from ldaptor import config
 
     factory = protocol.ServerFactory()
     cfg = config.LDAPConfig(serviceLocationOverrides={
         '': ('localhost', 389),
-        })
-    factory.protocol = lambda : ServiceBindingProxy(config=cfg,
-                                                    services=[
-        'svc1',
-        'svc2',
-        'svc3',
-        ],
-                                                    fallback=True,
-                                                    )
+    })
+    factory.protocol = lambda: ServiceBindingProxy(config=cfg,
+                                                   services=[
+                                                       'svc1',
+                                                       'svc2',
+                                                       'svc3',
+                                                   ],
+                                                   fallback=True,
+                                                   )
     reactor.listenTCP(10389, factory)
     reactor.run()

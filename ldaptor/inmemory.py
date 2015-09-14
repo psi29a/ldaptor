@@ -1,21 +1,21 @@
-from zope.interface import implements
-from twisted.internet import defer, error
-from twisted.python.failure import Failure
 from ldaptor import interfaces, entry, entryhelpers
 from ldaptor.protocols.ldap import distinguishedname, ldaperrors, ldifprotocol
+from twisted.internet import defer, error
+from twisted.python.failure import Failure
+from zope.interface import implementer
 
 
 class LDAPCannotRemoveRootError(ldaperrors.LDAPNamingViolation):
     """Cannot remove root of LDAP tree"""
 
 
+@implementer(interfaces.IConnectedLDAPEntry)
 class ReadOnlyInMemoryLDAPEntry(entry.EditableLDAPEntry,
                                 entryhelpers.DiffTreeMixin,
                                 entryhelpers.SubtreeFromChildrenMixin,
                                 entryhelpers.MatchMixin,
                                 entryhelpers.SearchByTreeWalkingMixin,
                                 ):
-    implements(interfaces.IConnectedLDAPEntry)
 
     def __init__(self, *a, **kw):
         entry.BaseLDAPEntry.__init__(self, *a, **kw)
@@ -56,7 +56,7 @@ class ReadOnlyInMemoryLDAPEntry(entry.EditableLDAPEntry,
         rdn = distinguishedname.RelativeDistinguishedName(rdn)
         for c in self._children:
             if c.dn.split()[0] == rdn:
-                raise ldaperrors.LDAPEntryAlreadyExists, c.dn
+                raise ldaperrors.LDAPEntryAlreadyExists(c.dn)
         dn = distinguishedname.DistinguishedName(
             listOfRDNs=(rdn,) + self.dn.split())
         e = ReadOnlyInMemoryLDAPEntry(dn, attributes)
@@ -68,7 +68,7 @@ class ReadOnlyInMemoryLDAPEntry(entry.EditableLDAPEntry,
         if self._parent is None:
             raise LDAPCannotRemoveRootError
         if self._children:
-            raise ldaperrors.LDAPNotAllowedOnNonLeaf, self.dn
+            raise ldaperrors.LDAPNotAllowedOnNonLeaf(self.dn)
         return self._parent.deleteChild(self.dn.split()[0])
 
     def delete(self):
@@ -81,7 +81,7 @@ class ReadOnlyInMemoryLDAPEntry(entry.EditableLDAPEntry,
             if c.dn.split()[0] == rdn:
                 self._children.remove(c)
                 return c
-        raise ldaperrors.LDAPNoSuchObject, rdn
+        raise ldaperrors.LDAPNoSuchObject(rdn)
 
     def deleteChild(self, rdn):
         return defer.maybeDeferred(self._deleteChild, rdn)
@@ -122,7 +122,6 @@ class ReadOnlyInMemoryLDAPEntry(entry.EditableLDAPEntry,
 
 
 class InMemoryLDIFProtocol(ldifprotocol.LDIF):
-
     """
     Receive LDIF data and gather results into an ReadOnlyInMemoryLDAPEntry.
 
@@ -150,11 +149,13 @@ class InMemoryLDIFProtocol(ldifprotocol.LDIF):
             if parent is not None:
                 parent.addChild(rdn=entry.dn.split()[0],
                                 attributes=entry)
+
         d.addCallback(_add, entry)
         d.addErrback(self.addFailed, entry)
 
         def _passDB(_, db):
             return db
+
         d.addCallback(_passDB, db)
         return d
 

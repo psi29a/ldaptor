@@ -1,24 +1,29 @@
+from io import StringIO
 from twisted.python import failure
 from twisted.internet import reactor, protocol, address, error
 from twisted.test import testutils
 from twisted.trial import unittest
 
-from StringIO import StringIO
 
 class FakeTransport(protocol.FileWrapper):
     disconnecting = False
     disconnect_done = False
+
     def __init__(self, addr, peerAddr):
         self.data = StringIO()
         protocol.FileWrapper.__init__(self, self.data)
         self.addr = addr
         self.peerAddr = peerAddr
+
     def getHost(self):
         return self.addr
+
     def getPeer(self):
         return self.peerAddr
+
     def loseConnection(self):
         self.disconnecting = True
+
 
 class FasterIOPump(testutils.IOPump):
     def pump(self):
@@ -41,8 +46,10 @@ class FasterIOPump(testutils.IOPump):
         else:
             return 0
 
+
 class IOPump(FasterIOPump):
     active = []
+
     def __init__(self,
                  client, server,
                  clientTransport, serverTransport):
@@ -54,6 +61,7 @@ class IOPump(FasterIOPump):
                                   clientIO=clientTransport.data,
                                   serverIO=serverTransport.data)
         self.active.append(self)
+
     def pump(self):
         FasterIOPump.pump(self)
         if (self.clientTransport.disconnecting
@@ -80,7 +88,9 @@ class IOPump(FasterIOPump):
             self.server,
             self.serverIO.getvalue(),
 
-            )
+        )
+
+
 def returnConnected(server, client,
                     clientAddress=None,
                     serverAddress=None):
@@ -103,8 +113,10 @@ def returnConnected(server, client,
     pump.flush()
     return pump
 
+
 def _append(result, lst):
     lst.append(result)
+
 
 def _getDeferredResult(d, timeout=None):
     if timeout is not None:
@@ -117,11 +129,12 @@ def _getDeferredResult(d, timeout=None):
         reactor.iterate()
     return resultSet[0]
 
+
 def pumpingDeferredResult(d, timeout=None):
     result = _getDeferredResult(d, timeout)
     if isinstance(result, failure.Failure):
         if result.tb:
-            raise result.value.__class__, result.value, result.tb
+            raise result.value.__class__(result.value).with_traceback(result.tb)
         raise result.value
     else:
         return result
@@ -132,4 +145,4 @@ def pumpingDeferredError(d, timeout=None):
     if isinstance(result, failure.Failure):
         return result
     else:
-        raise unittest.FailTest, "Deferred did not fail: %r" % (result,)
+        raise unittest.FailTest("Deferred did not fail: %r" % (result,))

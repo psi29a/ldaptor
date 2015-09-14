@@ -1,22 +1,30 @@
 from twisted.internet import protocol, defer
 from twisted.internet.endpoints import clientFromString
+
 try:
     from twisted.internet import endpoints
+
     connectProtocol = endpoints.connectProtocol
 except AttributeError:
     # Twisted >= 13.1
     from twisted.internet.protocol import Factory
+
+
     def connectProtocol(endpoint, protocol):
         class OneShotFactory(Factory):
             def buildProtocol(self, addr):
                 return protocol
+
         return endpoint.connect(OneShotFactory())
 from ldaptor.protocols.ldap import distinguishedname
+
 try:
     from twisted.internet import utils
+
     SRVConnector = utils.SRVConnector
 except AttributeError:
     from twisted.names.srvconnect import SRVConnector
+
 
 def connectToLDAPEndpoint(reactor, endpointStr, clientProtocol):
     e = clientFromString(reactor, endpointStr)
@@ -30,16 +38,16 @@ class LDAPConnector(SRVConnector):
         if not isinstance(dn, distinguishedname.DistinguishedName):
             dn = distinguishedname.DistinguishedName(stringValue=dn)
         if overrides is None:
-            overrides={}
+            overrides = {}
         self.override = self._findOverRide(dn, overrides)
 
         domain = dn.getDomainName()
         SRVConnector.__init__(self, reactor,
-                  'ldap', domain, factory,
-                  connectFuncKwArgs={'bindAddress': bindAddress})
+                              'ldap', domain, factory,
+                              connectFuncKwArgs={'bindAddress': bindAddress})
 
     def __getstate__(self):
-        r={}
+        r = {}
         r.update(self.__dict__)
         r['connector'] = None
         return r
@@ -104,13 +112,15 @@ class LDAPConnector(SRVConnector):
             port = 389
         return host, port
 
+
 class LDAPClientCreator(protocol.ClientCreator):
     def connect(self, dn, overrides=None, bindAddress=None):
         """Connect to remote host, return Deferred of resulting protocol instance."""
         d = defer.Deferred()
-        f = protocol._InstanceFactory(self.reactor, self.protocolClass(*self.args, **self.kwargs), d)
+        f = protocol._InstanceFactory(self.reactor, self.protocolClass(*self.args, **self.kwargs),
+                                      d)
         c = LDAPConnector(self.reactor, dn, f, overrides=overrides,
-                bindAddress=bindAddress)
+                          bindAddress=bindAddress)
         c.connect()
         return d
 
@@ -119,8 +129,9 @@ class LDAPClientCreator(protocol.ClientCreator):
         d = self.connect(dn, overrides=overrides)
 
         def _bind(proto):
-            d=proto.bind()
+            d = proto.bind()
             d.addCallback(lambda _: proto)
             return d
+
         d.addCallback(_bind)
         return d

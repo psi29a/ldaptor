@@ -1,15 +1,14 @@
 """
 Test cases for ldaptor.protocols.ldap.ldapserver module.
 """
-from __future__ import print_function
+
 import base64
-import sets
 import types
+
 from twisted.internet import address, protocol
 from twisted.python import components
 from ldaptor import inmemory, interfaces, schema, delta, entry
-from ldaptor.protocols.ldap import ldapserver, ldapclient, ldaperrors, \
-    fetchschema
+from ldaptor.protocols.ldap import ldapserver, ldapclient, ldaperrors, fetchschema
 from ldaptor.protocols import pureldap, pureber
 from ldaptor.test import util, test_schema
 from twisted.test import proto_helpers
@@ -29,7 +28,6 @@ def wrapCommit(entry, cb, *args, **kwds):
 
 
 class LDAPServerTest(unittest.TestCase):
-
     def setUp(self):
         self.root = inmemory.ReadOnlyInMemoryLDAPEntry(
             dn='dc=example,dc=com',
@@ -61,7 +59,7 @@ class LDAPServerTest(unittest.TestCase):
     def test_bind(self):
         self.server.dataReceived(
             str(pureldap.LDAPMessage(pureldap.LDAPBindRequest(), id=4)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -77,7 +75,7 @@ class LDAPServerTest(unittest.TestCase):
                         dn='cn=thingie,ou=stuff,dc=example,dc=com',
                         auth='secret'),
                     id=4)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -94,7 +92,7 @@ class LDAPServerTest(unittest.TestCase):
                         dn='cn=thingie,ou=stuff,dc=example,dc=com',
                         auth='invalid'),
                     id=734)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -110,7 +108,7 @@ class LDAPServerTest(unittest.TestCase):
                         dn='cn=non-existing,dc=example,dc=com',
                         auth='invalid'),
                     id=78)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -124,7 +122,7 @@ class LDAPServerTest(unittest.TestCase):
                 pureldap.LDAPMessage(
                     pureldap.LDAPBindRequest(version=1),
                     id=32)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -139,7 +137,7 @@ class LDAPServerTest(unittest.TestCase):
                 pureldap.LDAPMessage(
                     pureldap.LDAPBindRequest(version=2),
                     id=32)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -154,7 +152,7 @@ class LDAPServerTest(unittest.TestCase):
                 pureldap.LDAPMessage(
                     pureldap.LDAPBindRequest(version=4),
                     id=32)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -174,7 +172,7 @@ class LDAPServerTest(unittest.TestCase):
                         dn='cn=non-existing,dc=example,dc=com',
                         auth='invalid'),
                     id=11)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -186,7 +184,7 @@ class LDAPServerTest(unittest.TestCase):
     def test_unbind(self):
         self.server.dataReceived(
             str(pureldap.LDAPMessage(pureldap.LDAPUnbindRequest(), id=7)))
-        self.assertEquals(self.server.transport.value(), '')
+        self.assertEqual(self.server.transport.value(), '')
 
     def test_search_outOfTree(self):
         self.server.dataReceived(
@@ -195,7 +193,7 @@ class LDAPServerTest(unittest.TestCase):
                     pureldap.LDAPSearchRequest(
                         baseObject='dc=invalid'),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -210,7 +208,7 @@ class LDAPServerTest(unittest.TestCase):
                     pureldap.LDAPSearchRequest(
                         baseObject='cn=thingie,ou=stuff,dc=example,dc=com'),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -233,7 +231,7 @@ class LDAPServerTest(unittest.TestCase):
                         baseObject='cn=thingie,ou=stuff,dc=example,dc=com',
                         attributes=['cn']),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -255,7 +253,7 @@ class LDAPServerTest(unittest.TestCase):
                         baseObject='cn=thingie,ou=stuff,dc=example,dc=com',
                         attributes=['xyzzy']),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -268,7 +266,7 @@ class LDAPServerTest(unittest.TestCase):
                 pureldap.LDAPMessage(
                     pureldap.LDAPSearchRequest(
                         baseObject='ou=stuff,dc=example,dc=com'), id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -307,7 +305,7 @@ class LDAPServerTest(unittest.TestCase):
                         baseObject='ou=stuff,dc=example,dc=com',
                         scope=pureldap.LDAP_SCOPE_singleLevel),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -338,7 +336,7 @@ class LDAPServerTest(unittest.TestCase):
                         baseObject='ou=stuff,dc=example,dc=com',
                         scope=pureldap.LDAP_SCOPE_wholeSubtree),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -377,7 +375,7 @@ class LDAPServerTest(unittest.TestCase):
                         baseObject='ou=stuff,dc=example,dc=com',
                         scope=pureldap.LDAP_SCOPE_baseObject),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -401,7 +399,7 @@ class LDAPServerTest(unittest.TestCase):
                         scope=pureldap.LDAP_SCOPE_baseObject,
                         filter=pureldap.LDAPFilter_present('objectClass')),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -411,7 +409,7 @@ class LDAPServerTest(unittest.TestCase):
                             ('supportedLDAPVersion', ['3']),
                             ('namingContexts', ['dc=example,dc=com']),
                             ('supportedExtension',
-                                [pureldap.LDAPPasswordModifyRequest.oid])]),
+                             [pureldap.LDAPPasswordModifyRequest.oid])]),
                     id=2)
             ) + str(
                 pureldap.LDAPMessage(
@@ -425,14 +423,14 @@ class LDAPServerTest(unittest.TestCase):
                 pureldap.LDAPMessage(
                     pureldap.LDAPDelRequest(str(self.thingie.dn)),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
                     pureldap.LDAPDelResponse(resultCode=0),
                     id=2)))
         d = self.stuff.children()
-        d.addCallback(self.assertEquals, [self.another])
+        d.addCallback(self.assertEqual, [self.another])
         return d
 
     def test_add_success(self):
@@ -452,7 +450,7 @@ class LDAPServerTest(unittest.TestCase):
                             )
                         ]),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -462,7 +460,7 @@ class LDAPServerTest(unittest.TestCase):
         # tree changed
         d = self.stuff.children()
         d.addCallback(
-            self.assertEquals,
+            self.assertEqual,
             [
                 self.thingie,
                 self.another,
@@ -488,7 +486,7 @@ class LDAPServerTest(unittest.TestCase):
                             )
                         ]),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -498,7 +496,7 @@ class LDAPServerTest(unittest.TestCase):
                     id=2)))
         # tree did not change
         d = self.stuff.children()
-        d.addCallback(self.assertEquals, [self.thingie, self.another])
+        d.addCallback(self.assertEqual, [self.thingie, self.another])
         return d
 
     def test_modifyDN_rdnOnly_deleteOldRDN_success(self):
@@ -511,7 +509,7 @@ class LDAPServerTest(unittest.TestCase):
                         newrdn=newrdn,
                         deleteoldrdn=True),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -521,7 +519,7 @@ class LDAPServerTest(unittest.TestCase):
         # tree changed
         d = self.stuff.children()
         d.addCallback(
-            self.assertEquals,
+            self.assertEqual,
             [
                 inmemory.ReadOnlyInMemoryLDAPEntry(
                     '%s,ou=stuff,dc=example,dc=com' % newrdn,
@@ -543,7 +541,7 @@ class LDAPServerTest(unittest.TestCase):
                         newrdn=newrdn,
                         deleteoldrdn=False),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -553,16 +551,17 @@ class LDAPServerTest(unittest.TestCase):
         # tree changed
         d = self.stuff.children()
         d.addCallback(
-            self.assertEquals,
-            sets.Set([
+            self.assertEqual,
+            {
                 self.another,
                 inmemory.ReadOnlyInMemoryLDAPEntry(
                     '%s,ou=stuff,dc=example,dc=com' % newrdn,
                     {
                         'objectClass': ['a', 'b'],
                         'cn': ['thingamagic', 'thingie']
-                    })]))
+                    })})
         return d
+
     test_modifyDN_rdnOnly_noDeleteOldRDN_success.todo = 'Not supported yet.'
 
     def test_modify(self):
@@ -575,7 +574,7 @@ class LDAPServerTest(unittest.TestCase):
                             delta.Add('foo', ['bar']).asLDAP(),
                         ]),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -583,7 +582,7 @@ class LDAPServerTest(unittest.TestCase):
                         resultCode=ldaperrors.Success.resultCode),
                     id=2)))
         # tree changed
-        self.assertEquals(
+        self.assertEqual(
             self.stuff,
             inmemory.ReadOnlyInMemoryLDAPEntry(
                 'ou=stuff,dc=example,dc=com',
@@ -601,7 +600,7 @@ class LDAPServerTest(unittest.TestCase):
                         requestName='42.42.42',
                         requestValue='foo'),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -618,7 +617,7 @@ class LDAPServerTest(unittest.TestCase):
                         userIdentity='cn=thingie,ou=stuff,dc=example,dc=com',
                         newPasswd='hushhush'),
                     id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -643,7 +642,7 @@ class LDAPServerTest(unittest.TestCase):
                     dn='cn=thingie,ou=stuff,dc=example,dc=com',
                     auth='secret'),
                 id=4)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -659,8 +658,8 @@ class LDAPServerTest(unittest.TestCase):
                         userIdentity='cn=thingie,ou=stuff,dc=example,dc=com',
                         newPasswd='hushhush'),
                     id=2)))
-        self.assertEquals(data['committed'], True, "Server never committed data.")
-        self.assertEquals(
+        self.assertEqual(data['committed'], True, "Server never committed data.")
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -670,22 +669,23 @@ class LDAPServerTest(unittest.TestCase):
                     id=2)))
         # tree changed
         secrets = self.thingie.get('userPassword', [])
-        self.assertEquals(len(secrets), 1)
+        self.assertEqual(len(secrets), 1)
         for secret in secrets:
-            self.assertEquals(secret[:len('{SSHA}')], '{SSHA}')
+            self.assertEqual(secret[:len('{SSHA}')], '{SSHA}')
             raw = base64.decodestring(secret[len('{SSHA}'):])
             salt = raw[20:]
-            self.assertEquals(entry.sshaDigest('hushhush', salt), secret)
+            self.assertEqual(entry.sshaDigest('hushhush', salt), secret)
 
     def test_unknownRequest(self):
         # make server miss one of the handle_* attributes
         # without having to modify the LDAPServer class
         class MockServer(ldapserver.LDAPServer):
             handle_LDAPBindRequest = property()
+
         self.server.__class__ = MockServer
         self.server.dataReceived(str(pureldap.LDAPMessage(
             pureldap.LDAPBindRequest(), id=2)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -700,7 +700,7 @@ class LDAPServerTest(unittest.TestCase):
             pureldap.LDAPBindRequest(), id=2,
             controls=[('42.42.42.42', True, None),
                       ])))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -716,7 +716,7 @@ class LDAPServerTest(unittest.TestCase):
                                      auth='secret'),
             controls=[('42.42.42.42', False, None)],
             id=4)))
-        self.assertEquals(
+        self.assertEqual(
             self.server.transport.value(),
             str(
                 pureldap.LDAPMessage(
@@ -766,12 +766,12 @@ class TestSchema(unittest.TestCase):
         d = fetchschema.fetch(self.client, 'dc=example,dc=com')
         (attributeTypes, objectClasses) = util.pumpingDeferredResult(d)
 
-        self.failUnlessEqual(
+        self.assertEqual(
             [str(x) for x in attributeTypes],
             [str(schema.AttributeTypeDescription(x)) for x in [
                 test_schema.AttributeType_KnownValues.knownValues[0][0]]])
 
-        self.failUnlessEqual(
+        self.assertEqual(
             [str(x) for x in objectClasses],
             [str(schema.ObjectClassDescription(x)) for x in [
                 test_schema.OBJECTCLASSES['organization'],
